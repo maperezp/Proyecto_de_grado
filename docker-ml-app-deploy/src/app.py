@@ -35,16 +35,18 @@ from pydantic import BaseModel, Field
 from modules.pch_client import PCHCloudClient
 from modules.model_predictor import ModelPredictor
 from modules.plot_utils import PlotGenerator
-from modules.demo_data import DemoDataProvider
 from modules.prediction_db import PredictionDatabase
 from modules import wifi
 
-# Importar modelos para WiFi
-from models.proton_models import WiFiConfig
+
 
 # ============================================================================
 # PYDANTIC MODELS FOR API DOCUMENTATION
 # ============================================================================
+
+class WiFiConfig(BaseModel):
+    ssid: str
+    password: str
 
 class PeriodRequest(BaseModel):
     """Model for period-based requests"""
@@ -56,7 +58,7 @@ class PeriodRequest(BaseModel):
 class PredictionRequest(BaseModel):
     """Model for prediction requests"""
     device_id: str = Field(..., description="ID of the device to analyze")
-    model_name: str = Field(default="myRF_3axis_25000", description="Name of the ML model to use")
+    model_name: str = Field(default="myRF_3axis_50000", description="Name of the ML model to use")
     period: PeriodRequest = Field(..., description="Time period for predictions")
     channel: int = Field(default=1, description="Channel number to analyze")
 
@@ -301,7 +303,7 @@ async def get_status():
             },
             "models": {
                 "loaded": 4,
-                "available": ["myRF_3axis_25000", "myRF_axial_50000", ...]
+                "available": ["myRF_3axis_50000", "myRF_axial_50000", ...]
             },
             "database": {
                 "total_predictions": 1234,
@@ -349,7 +351,7 @@ async def get_available_models():
         ```json
         {
             "models": [
-                "myRF_3axis_25000",
+                "myRF_3axis_50000",
                 "myRF_axial_50000",
                 "myRF_radial_50000",
                 "myRF_tangential_50000"
@@ -675,7 +677,7 @@ async def predict_period_data(request_data: dict):
         ```json
         {
             "device_id": "device_001",
-            "model_name": "myRF_3axis_25000",
+            "model_name": "myRF_3axis_50000",
             "period": {
                 "period_type": "last_24h",
                 "hours_back": 24
@@ -688,7 +690,7 @@ async def predict_period_data(request_data: dict):
         ```json
         {
             "device_id": "device_001",
-            "model_used": "myRF_3axis_25000",
+            "model_used": "myRF_3axis_50000",
             "predictions": [
                 {
                     "recording_id": "rec_123",
@@ -713,7 +715,7 @@ async def predict_period_data(request_data: dict):
         ```
     """
     device_id = request_data.get("device_id")
-    model_name = request_data.get("model_name", "myRF_3axis_25000")
+    model_name = request_data.get("model_name", "myRF_3axis_50000")
     period_data = request_data.get("period", {})
     channel = request_data.get("channel", 1)
     

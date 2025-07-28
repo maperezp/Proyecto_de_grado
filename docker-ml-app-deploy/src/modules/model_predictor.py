@@ -289,14 +289,15 @@ class ModelPredictor:
             logger.error(f"Error preprocessing data: {e}")
             return pd.DataFrame()
 
-    def predict(self, data: Dict, model_name: str = "myRF_3axis_25000") -> Dict:
+    def predict(self, data: Dict, model_name: str = "myRF_3axis_50000") -> Dict:
         """Realizar predicción usando el formato correcto de características"""
         try:
             if model_name not in self.models:
                 available_models = list(self.models.keys())
                 if available_models:
+                    original_model_name = model_name
                     model_name = available_models[0]
-                    logger.warning(f"Model {model_name} not found, using {available_models[0]}")
+                    logger.warning(f"Model {original_model_name} not found, using {available_models[0]}")
                 else:
                     return {"error": "No models available"}
             

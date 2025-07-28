@@ -9,12 +9,12 @@ from .pch_client import PCHCloudClient
 from .model_predictor import ModelPredictor
 from .websocket_manager import ConnectionManager
 from .plot_utils import PlotGenerator
-from .demo_data import DemoDataProvider
+
 
 __all__ = [
     'PCHCloudClient',
     'ModelPredictor', 
     'ConnectionManager',
     'PlotGenerator',
-    'DemoDataProvider'
+    
 ]
