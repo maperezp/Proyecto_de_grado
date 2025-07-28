@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCH-Cloud Real-Time Monitoring Dashboard</title>
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    
+    <!-- JavaScript Dependencies -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <strong>PCH-Cloud Monitoring</strong>
+            </a>
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <!-- WiFi Configuration Button -->
+                <a href="/wifi" class="btn btn-outline-light btn-sm me-3" title="WiFi Configuration">
+                    <i class="fas fa-cog me-1"></i>
+                    WiFi Config
+                </a>
+                
+                <!-- Connection Status -->
+                <span class="navbar-text">
+                    <span class="status-indicator real-time-indicator" id="connectionStatus"></span>
+                    <span id="connectionText">Connecting...</span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar con dispositivos -->
+            <div class="col-md-3">
+                <!-- Selección de dispositivo -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-microchip"></i> 1. Select Device/Sensor</h5>
+                        <button class="btn btn-sm btn-primary" onclick="loadDevices()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body" id="devicesList" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Loading devices...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selección de período de tiempo -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-clock"></i> 2. Select Time Period</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Quick Options:</label>
+                            <div class="btn-group-vertical w-100">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="setPeriod('last_minute')">
+                                    Last Minute
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="setPeriod('last_hour')">
+                                    Last Hour
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="setPeriod('last_24h')">
+                                    Last 24 Hours
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Custom Period:</label>
+                            <div class="mb-2">
+                                <label class="form-label small">Start Date & Time:</label>
+                                <input type="datetime-local" class="form-control form-control-sm" id="startDateTime">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">End Date & Time:</label>
+                                <input type="datetime-local" class="form-control form-control-sm" id="endDateTime">
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="setPeriod('custom')">
+                                Set Custom Period
+                            </button>
+                        </div>
+                        
+                        <div id="selectedPeriod" class="alert alert-info" style="display: none;">
+                            <small><strong>Selected:</strong> <span id="periodText">None</span></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Selección de modelo y predicción -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-brain"></i> 3. Prediction Model</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <select class="form-select form-select-sm" id="modelSelect">
+                                <option value="">Loading models...</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-success w-100" id="predictButton" onclick="performPrediction()" disabled>
+                            <i class="fas fa-magic"></i> Perform Prediction
+                        </button>
+                        
+                        <div id="predictionStatus" class="mt-2" style="display: none;">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                <small class="d-block">Processing predictions...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área principal con pestañas -->
+            <div class="col-md-9">
+                <!-- Estado de la configuración -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6><i class="fas fa-info-circle"></i> Configuration Status</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Device:</small><br>
+                                        <span id="statusDevice" class="badge bg-secondary">None selected</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Time Period:</small><br>
+                                        <span id="statusPeriod" class="badge bg-secondary">None selected</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Model:</small><br>
+                                        <span id="statusModel" class="badge bg-secondary">None selected</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menú de pestañas -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="mainTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="signals-tab" data-bs-toggle="tab" data-bs-target="#signals" type="button" role="tab" aria-controls="signals" aria-selected="false">
+                                    <i class="fas fa-wave-square"></i> Ver Señal
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions" type="button" role="tab" aria-controls="predictions" aria-selected="true">
+                                    <i class="fas fa-brain"></i> Ver Resultados de Predicciones
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="mainTabsContent">
+                            <!-- Pestaña de Predicciones -->
+                            <div class="tab-pane fade show active" id="predictions" role="tabpanel" aria-labelledby="predictions-tab">
+                                
+                                <!-- Panel Informativo Superior -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info" id="dashboardInfoPanel">
+                                            <div class="row text-center">
+                                                <div class="col-md-3">
+                                                    <h6 class="mb-1"><i class="fas fa-brain"></i> Total Predictions</h6>
+                                                    <span class="badge badge-primary" id="totalPredictionsCount">0</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <h6 class="mb-1"><i class="fas fa-check-circle"></i> Successful</h6>
+                                                    <span class="badge badge-success" id="successfulPredictionsCount">0</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <h6 class="mb-1"><i class="fas fa-microchip"></i> Devices</h6>
+                                                    <span class="badge badge-info" id="uniqueDevicesCount">0</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <h6 class="mb-1"><i class="fas fa-cogs"></i> Models Used</h6>
+                                                    <span class="badge badge-warning" id="uniqueModelsCount">0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tabla de predicciones detalladas -->
+                                <div class="card mb-3" id="predictionsTable">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5><i class="fas fa-table"></i> Detailed Predictions</h5>
+                                            <small class="text-muted">Individual predictions from database</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="loadDatabasePredictions()">
+                                                <i class="fas fa-database"></i> Load from Database
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshDatabasePredictions()">
+                                                <i class="fas fa-sync"></i> Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                            <table class="table table-sm table-striped table-hover">
+                                                <thead class="table-dark sticky-top">
+                                                    <tr>
+                                                        <th>Timestamp</th>
+                                                        <th>Device</th>
+                                                        <th>Recording ID</th>
+                                                        <th>Prediction</th>
+                                                        <th>Confidence</th>
+                                                        <th>Top Probabilities</th>
+                                                        <th>Model</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="predictionsTableBody">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Cards de predicción del período -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="prediction-card">
+                                            <h5><i class="fas fa-chart-pie"></i> Prediction Probabilities</h5>
+                                            <div id="periodSummary">
+                                                <p class="mb-0">Configure device and period, then perform prediction to see probabilities</p>
+                                            </div>
+                                            
+                                            <!-- Probabilidades promedio en la prediction card -->
+                                            <div id="probabilitiesInCard" style="display: none;">
+                                                <hr class="text-white">
+                                                <h6><i class="fas fa-percentage"></i> Class Probabilities</h6>
+                                                <div id="probabilitiesCardContent">
+                                                    <!-- Las probabilidades se cargarán aquí -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="stats-card">
+                                            <h5><i class="fas fa-list-alt"></i> Recordings Info</h5>
+                                            <div id="recordingsInfo">
+                                                <p class="mb-0">No data available</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gráficos de una grabación seleccionada -->
+                                <div id="recordingDetails" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h5><i class="fas fa-chart-area"></i> Selected Recording - Time Domain Signal</h5>
+                                                    <small class="text-muted" id="selectedRecordingInfo"></small>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="timePlot" class="chart-container"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h5><i class="fas fa-wave-square"></i> Selected Recording - Frequency Domain (FFT)</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="fftPlot" class="chart-container"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Pestaña de Señales -->
+                            <div class="tab-pane fade" id="signals" role="tabpanel" aria-labelledby="signals-tab">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Canal:</label>
+                                        <select class="form-select" id="channelSelect">
+                                            <option value="1">Canal 1</option>
+                                            <option value="2">Canal 2</option>
+                                            <option value="3">Canal 3</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-primary w-100" onclick="loadSignalData()" id="loadSignalBtn">
+                                            <i class="fas fa-chart-line"></i> Cargar Señal del Período
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="signalLoading" class="text-center" style="display: none;">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Cargando datos de señal...</p>
+                                </div>
+                                
+                                <div id="signalCharts" style="display: none;">
+                                    <!-- Gráfico de dominio del tiempo -->
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-chart-area"></i> Señal en el Dominio del Tiempo</h5>
+                                            <small class="text-muted" id="signalTimeInfo"></small>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="timeSignalPlot" class="chart-container"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Gráfico de dominio de la frecuencia -->
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-wave-square"></i> Análisis de Frecuencia (FFT)</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="fftSignalPlot" class="chart-container"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Estadísticas de la señal -->
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-calculator"></i> Estadísticas de la Señal</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="signalStats" class="row">
+                                                <!-- Las estadísticas se cargarán aquí -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="noSignalData" class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Selecciona un dispositivo y período de tiempo, luego presiona "Cargar Señal del Período" para ver los gráficos de tiempo y frecuencia.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', path='/dashboard.js') }}"></script>
+</body>
+</html>

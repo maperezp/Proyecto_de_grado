@@ -1,0 +1,28 @@
+# Requirements File
+
+# Web Framework
+fastapi
+uvicorn
+pydantic
+
+# Web Templates
+jinja2
+
+# HTTP Client
+requests
+urllib3
+
+# Machine Learning
+scikit-learn==1.7
+joblib
+
+# Data Processing
+numpy
+pandas
+scipy
+
+# Plotting and Visualization
+plotly
+
+# Database
+# sqlite3 is part of Python standard library
