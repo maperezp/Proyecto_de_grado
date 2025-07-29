@@ -45,6 +45,7 @@ from modules import wifi
 # ============================================================================
 
 class WiFiConfig(BaseModel):
+    """ Model for Wifi Config"""
     ssid: str
     password: str
 

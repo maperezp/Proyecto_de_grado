@@ -1,4 +1,7 @@
-# Proyecto de Grado - Aplicación de Monitoreo en Tiempo Real PCH-Cloud
+# Proyecto de Grado - Desarrollo de un algoritmo de machine
+ learning en dispositivo IoT para
+ aplicaci´ on industrial de an´ alisis de
+ vibraciones
 
 Sistema de monitoreo en tiempo real para dispositivos PCH-Cloud con análisis de machine learning, visualización de señales y gestión de conectividad WiFi.
 
@@ -82,6 +85,7 @@ docker-ml-app-deploy/
 - Docker instalado
 - Puerto 8080 disponible
 - Privilegios de red para gestión WiFi
+- Python
 
 ### Construcción del Contenedor
 
