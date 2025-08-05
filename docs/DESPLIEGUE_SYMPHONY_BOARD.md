@@ -18,7 +18,7 @@ Esta guía describe el proceso completo para desplegar la aplicación en una Sym
 La conexión del usuario a la aplicación se realizará como se muestra en la Figura. Para ello, el usuario conecta su computador directamente al puerto Ethernet de la Symphony board. Ambos dispositivos deben estar en la misma red local, lo que permite acceder a la interfaz 
 web del sistema ingresando la dirección IP de la tarjeta en el navegador. 
 
-![Conexión del usuario a la aplicacion](modo_de_uso.png)
+![Conexión del usuario a la aplicacion](/docs/figs/modo_de_uso.png)
 
 Estas son las credenciales de acceso:
 - IP: 172.20.3.2
@@ -166,5 +166,5 @@ docker images
 ## Paso 6: run contenedor
 
 ```bash
-docker run --network=host --privileged --name app-container -v $(pwd)/src:/app -it ml-app:amr64
+docker run --network=host --privileged --name app-container -v $(pwd)/src:/app -it ml-app:arm64
 ```
