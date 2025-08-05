@@ -2,7 +2,7 @@
 
 Documentación técnica de la aplicación web desarrollada con FastAPI y Docker para el monitoreo en tiempo real de dispositivos PCH-Cloud. La aplicación integra análisis de machine learning para detección predictiva de fallas en rodamientos y gestión de conectividad WiFi para dispositivos embebidos.
 
-- [Objetivo](#objetivo)
+## Tabla de contenido 
 - [Arquitectura Técnica](#arquitectura-técnica)
   - [Stack Tecnológico](#stack-tecnológico)
   - [Estructura del Proyecto](#estructura-del-proyecto)
@@ -40,15 +40,15 @@ Documentación técnica de la aplicación web desarrollada con FastAPI y Docker 
 - [Despliegue](#despliegue)
 
 
-# Objetivo
+## Objetivo
 
 La aplicación del directorio `docker-ml-app-deploy` proporciona una plataforma integral de monitoreo predictivo que incluye:
 
-- **Monitoreo en tiempo real** de sensores de vibración en equipos industriales
-- **Análisis predictivo** mediante modelos de machine learning para detección temprana de fallas
-- **Visualización interactiva** de señales y datos con gráficos en tiempo real
-- **Gestión de conectividad WiFi** para dispositivos embebidos y sistemas IoT
-- **Almacenamiento persistente** y consulta de historial de predicciones
+- **Monitoreo en tiempo real** de sensores de vibración en equipos industriales.
+- **Análisis predictivo** mediante modelos de machine learning para detección temprana de fallas.
+- **Visualización interactiva** de señales y datos con gráficos en tiempo real.
+- **Gestión de conectividad WiFi** para dispositivos embebidos y sistemas IoT.
+- **Almacenamiento persistente** y consulta de historial de predicciones.
 
 # Arquitectura Técnica
 

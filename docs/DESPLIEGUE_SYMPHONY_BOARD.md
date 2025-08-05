@@ -1,29 +1,65 @@
-# Despliegue en Symphony Board - Guía de Instalación
+# Guía de despliegue en Symphony Board
 
 Esta guía describe el proceso completo para desplegar la aplicación en una Symphony Board usando Docker.
 
-## 📋 Prerrequisitos
+## Prerrequisitos
 
 ### Hardware Requerido
 - Symphony Board (ARM64) con imagen variscite previamente cargada con las características:
-  - Soporte out-of-the-box para Symphony board
   - Servidor ssh
   - Docker
-  - Kubernetes
   - Python3
 - PC host con linux y docker
 - Cable ethernet para conexión ssh
 - Cable micro usb para conexión serial
 
 
+## Preparación Inicial
+La conexión del usuario a la aplicación se realizará como se muestra en la Figura. Para ello, el usuario conecta su computador directamente al puerto Ethernet de la Symphony board. Ambos dispositivos deben estar en la misma red local, lo que permite acceder a la interfaz 
+web del sistema ingresando la dirección IP de la tarjeta en el navegador. 
+
+![Conexión del usuario a la aplicacion](modo_de_uso.png)
+
 Estas son las credenciales de acceso:
 - IP: 172.20.3.2
 - Usuario: root
 - Password: proton-ml
 
-## 🔧 Preparación Inicial
+### 1. Imagen Variscite
 
-### 1. Conexión Serial
+La tarjeta symphony board debe contener previamente la imagen **Variscite** con: Servidor SSH, Docker, Python3.
+**Si no cumple estos requisitos**, desde un equipo Linux ejecute el siguiente comando para flashear la imagen [`proton_ml_BASE-SD-v1_0-vSYMPHONY.img.zst`](https://proctek-my.sharepoint.com/:u:/g/personal/diego_medina_proctek_com1/ERAvYwrRWChMvoX_KLA1PNwBGiPvBloNDmk5kwyQ0rpLtw?e=cPlqhZ) en una tarjeta SD para luego de transferir esta a la tarjeta variscite:
+
+```bash
+zstdcat proton_ml_BASE-SD-v1_0-vSYMPHONY.img.zst | sudo dd of=/dev/sda bs=4M && sync
+```
+
+> **Nota:** Verifique el nombre del dispositivo de la tarjeta SD con el comando `lsblk` antes de ejecutar la instrucción (reemplace `/dev/sda` si es necesario).
+
+
+
+### Procedimiento para Arrancar el SOM desde la Tarjeta SD
+
+1. **Apagado del dispositivo**: Asegúrese de que el interruptor de alimentación (SW7) esté en posición `OFF`.
+   
+2. **Selección del modo de arranque**: Configure el interruptor selector de arranque (SW3) en posición `SD` (modo tarjeta SD):  
+
+   | Posición SW3 | Modo de Arranque |  
+   |--------------|-------------------|  
+   | `0`          | Tarjeta SD        |  
+   | `1`          | Memoria eMMC      |  
+
+3. **Inserción de la tarjeta microSD**: Introduzca la tarjeta preparada en la ranura **J28** de la placa Symphony.
+
+4. **Conexión del terminal serial (recomendado)** : Conecte la placa a su PC mediante el puerto serial **antes** de encender el dispositivo.
+
+5. **Encendido del dispositivo**  
+   - Cambie el interruptor SW7 a la posición `ON`.  
+   - Los mensajes de arranque se mostrarán en el terminal serial (si se está conectado).
+
+
+
+### 2. Conexión Serial
 ```bash
 # Verificar dispositivos conectados
 sudo dmesg
@@ -32,14 +68,37 @@ sudo dmesg
 sudo picocom -b 115200 /dev/ttyUSB0
 ```
 
-### 2. Preparación del Proyecto
+nota: para salir de picocom, primero, presiona `Ctrl+A` y luego `Ctrl+X`.
+
+
+### 3. Configuración de Red
+
+#### En el PC Host:
+```bash
+# Habilitar interfaz de red
+sudo ip link set enp2s0 up
+
+# Asignar IP estática en subred /24 (máscara 255.255.255.0)
+sudo ip addr add 172.20.3.1/24 dev enp2s0
+```
+
+#### En la Symphony Board:
+```bash
+# Habilitar interfaz Ethernet
+ip link set eth0 up
+
+# Asignar IP en la misma subred
+ip addr add 172.20.3.2/24 dev eth0
+```
+
+
+## Proceso de Despliegue
+
+### Paos 0: Preparación del Proyecto
 ```bash
 # Navegar al directorio del proyecto
 cd docker-ml-app-deploy
 ```
-
-
-## 🚀 Proceso de Despliegue
 
 ### Paso 1: Construcción de la Imagen Docker
 
@@ -72,27 +131,7 @@ docker images
 docker save -o proton-ml-app.tar ml-app:arm64
 ```
 
-### Paso 3: Configuración de Red
-
-#### En el PC Host:
-```bash
-# Habilitar interfaz de red
-sudo ip link set enp2s0 up
-
-# Asignar IP estática en subred /24 (máscara 255.255.255.0)
-sudo ip addr add 172.20.3.1/24 dev enp2s0
-```
-
-#### En la Symphony Board:
-```bash
-# Habilitar interfaz Ethernet
-ip link set eth0 up
-
-# Asignar IP en la misma subred
-ip addr add 172.20.3.2/24 dev eth0
-```
-
-### Paso 4: Establecer Conexión SSH
+### Paso 3: Establecer Conexión SSH
 
 ```bash
 # Probar conectividad desde el PC
@@ -102,7 +141,7 @@ ping -c2 172.20.3.2
 ssh root@172.20.3.2
 ```
 
-### Paso 5: Transferir Imagen Docker
+### Paso 4: Transferir Imagen Docker
 
 ```bash
 # Copiar imagen a la Symphony Board
@@ -113,7 +152,7 @@ scp proton-ml-app.tar root@172.20.3.2:/home/root
 # Copiar imagen a la Symphony Board
 scp proton-ml-app.tar root@172.20.3.2:/tmp
 ```
-### Paso 6: Cargar Imagen en la Board
+### Paso 5: Cargar Imagen en la Board
 
 ```bash
 # En la Symphony Board, cargar la imagen Docker
@@ -124,8 +163,8 @@ docker load -i proton-ml-app.tar
 docker images
 ```
 
-## Paso 7: run contenedor
+## Paso 6: run contenedor
 
 ```bash
-docker run --network=host --privileged --name test-container -v $(pwd)/src:/app -it ml-app:amd64
+docker run --network=host --privileged --name app-container -v $(pwd)/src:/app -it ml-app:amr64
 ```
