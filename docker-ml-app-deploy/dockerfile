@@ -1,7 +1,7 @@
-# TO be compatible with both arm64 architectures
-FROM --platform=linux/arm64/v8 python:3.10-slim
-# If want to tent the image in local environment, uncomment the next line (and comment the previous one)
-#FROM --platform=linux/amd64/v8  python:3.10-slim
+# Argumento para la arquitectura
+ARG TARGETPLATFORM=linux/arm64/v8
+FROM --platform=$TARGETPLATFORM python:3.10-slim
+
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
