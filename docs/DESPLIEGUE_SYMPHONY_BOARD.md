@@ -28,10 +28,10 @@ Estas son las credenciales de acceso:
 ### 1. Imagen Variscite
 
 La tarjeta symphony board debe contener previamente la imagen **Variscite** con: Servidor SSH, Docker, Python3.
-**Si no cumple estos requisitos**, desde un equipo Linux ejecute el siguiente comando para flashear la imagen [`proton_ml_BASE-SD-v1_0-vSYMPHONY.img.zst`](https://proctek-my.sharepoint.com/:u:/g/personal/diego_medina_proctek_com1/ERAvYwrRWChMvoX_KLA1PNwBGiPvBloNDmk5kwyQ0rpLtw?e=cPlqhZ) en una tarjeta SD para luego de transferir esta a la tarjeta variscite:
+**Si no cumple estos requisitos**, desde un equipo Linux ejecute el siguiente comando para flashear la imagen [`proton_ml_BASE-SD-v1_0-vSYMPHONY.img.zst`](https://proctek-my.sharepoint.com/:u:/g/personal/diego_medina_proctek_com1/EeKSyZG8nfFBn_-TxyOl8HUBMmh9kbu-7Gqa09WpVNspAg?e=Yzanun) en una tarjeta SD para luego de transferir esta a la tarjeta variscite:
 
 ```bash
-zstdcat proton_ml_BASE-SD-v1_0-vSYMPHONY.img.zst | sudo dd of=/dev/sda bs=4M && sync
+zstdcat proton_ml_BASE-SD-v1_1-vSYMPHONY.img.zst | sudo dd of=/dev/sda bs=4M && sync
 ```
 
 > **Nota:** Verifique el nombre del dispositivo de la tarjeta SD con el comando `lsblk` antes de ejecutar la instrucción (reemplace `/dev/sda` si es necesario).
@@ -91,6 +91,18 @@ ip link set eth0 up
 ip addr add 172.20.3.2/24 dev eth0
 ```
 
+Para acceder a red proctek
+```bash
+# Habilitar interfaz Ethernet
+ip link set eth1 up
+
+# Asignar IP en la misma subred
+ip addr add 172.31.50.24/24 dev eth1
+
+# Configurar gateway por defecto (asumiendo que el gateway es 172.20.3.1)
+ip route add default via 172.31.50.24 dev eth1
+```
+
 
 ## Proceso de Despliegue
 
@@ -110,7 +122,7 @@ ARG TARGETPLATFORM=linux/arm64/v8
 FROM --platform=$TARGETPLATFORM python:3.10-slim
 ```
 
-A continuación se indica como debe hacerse el build de acuerdo a la plataforma.
+A continuación se indica como se debe hacer el build de acuerdo a la plataforma.
 ```bash
 # Construir imagen para arquitectura ARM64 -> Symphony Board
 docker build --build-arg TARGETPLATFORM=linux/arm64/v8 -t ml-app:arm64 .
@@ -148,15 +160,12 @@ ssh root@172.20.3.2
 scp proton-ml-app.tar root@172.20.3.2:/home/root
 ```
 
-```bash
-# Copiar imagen a la Symphony Board
-scp proton-ml-app.tar root@172.20.3.2:/tmp
-```
+
 ### Paso 5: Cargar Imagen en la Board
 
 ```bash
 # En la Symphony Board, cargar la imagen Docker
-cd /tmp
+cd /home/root
 docker load -i proton-ml-app.tar
 
 # Verificar que se cargó correctamente
